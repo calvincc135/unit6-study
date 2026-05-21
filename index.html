@@ -527,7 +527,6 @@ function showSection(name, btn) {
 }
 
 // ============ FLASHCARDS (DECK) ============
-let isAnimating = false;
 const VISIBLE_STACK = 4;
 
 function buildDeck() {
@@ -551,7 +550,7 @@ function buildDeck() {
         </div>
       </div>`;
     el.addEventListener('click', () => {
-      if (el.dataset.depth === '0' && !isAnimating) flipTopCard();
+      if (el.dataset.depth === '0') flipTopCard();
     });
     container.appendChild(el);
   });
@@ -577,42 +576,30 @@ function flipTopCard() {
   if (top) top.classList.toggle('flipped');
 }
 
-function nextCard() {
-  if (isAnimating || filteredCards.length === 0) return;
-  isAnimating = true;
+function spawnGhost(direction) {
   const top = document.querySelector('.deck-card[data-depth="0"]');
-  top.classList.add('swipe-left');
-  setTimeout(() => {
-    cardIndex = (cardIndex + 1) % filteredCards.length;
-    top.classList.remove('swipe-left', 'flipped');
-    layoutDeck();
-    document.querySelectorAll('#deck-container .deck-card').forEach(c => {
-      if (c.dataset.depth !== 'hidden') c.classList.add('arriving');
-    });
-    setTimeout(() => {
-      document.querySelectorAll('.deck-card.arriving').forEach(c => c.classList.remove('arriving'));
-      isAnimating = false;
-    }, 350);
-  }, 400);
+  if (!top) return;
+  const ghost = top.cloneNode(true);
+  ghost.removeAttribute('data-index');
+  ghost.dataset.depth = '0';
+  ghost.style.pointerEvents = 'none';
+  ghost.classList.add(direction === 'left' ? 'swipe-left' : 'swipe-right');
+  top.parentElement.appendChild(ghost);
+  setTimeout(() => ghost.remove(), 500);
+}
+
+function nextCard() {
+  if (filteredCards.length === 0) return;
+  spawnGhost('left');
+  cardIndex = (cardIndex + 1) % filteredCards.length;
+  layoutDeck();
 }
 
 function prevCard() {
-  if (isAnimating || filteredCards.length === 0) return;
-  isAnimating = true;
-  const top = document.querySelector('.deck-card[data-depth="0"]');
-  top.classList.add('swipe-right');
-  setTimeout(() => {
-    cardIndex = (cardIndex - 1 + filteredCards.length) % filteredCards.length;
-    top.classList.remove('swipe-right', 'flipped');
-    layoutDeck();
-    document.querySelectorAll('#deck-container .deck-card').forEach(c => {
-      if (c.dataset.depth !== 'hidden') c.classList.add('arriving');
-    });
-    setTimeout(() => {
-      document.querySelectorAll('.deck-card.arriving').forEach(c => c.classList.remove('arriving'));
-      isAnimating = false;
-    }, 350);
-  }, 400);
+  if (filteredCards.length === 0) return;
+  spawnGhost('right');
+  cardIndex = (cardIndex - 1 + filteredCards.length) % filteredCards.length;
+  layoutDeck();
 }
 
 function shuffleCards() {
