@@ -336,6 +336,28 @@
     font-size: 1rem; cursor: pointer;
   }
 
+  /* MNEMONICS */
+  .mnemonic-card {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid rgba(34,197,94,0.18);
+    padding: 20px 24px; margin-bottom: 16px;
+  }
+  .mnemonic-card .mn-title {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--accent); font-weight: 700; margin-bottom: 8px;
+  }
+  .mnemonic-card .mn-hook {
+    font-size: 1.5rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px; letter-spacing: 1px;
+  }
+  .mnemonic-card .mn-body { color: var(--text-dim); line-height: 1.7; font-size: 0.95rem; }
+  .mnemonic-card .mn-body strong { color: var(--text); }
+  .mnemonic-card ul { margin: 6px 0 0 20px; }
+  .mnemonic-card li { margin-bottom: 4px; }
+
   @media (max-width: 640px) {
     nav { padding: 0 12px; gap: 4px; }
     nav .logo { font-size: 0.9rem; margin-right: 8px; }
@@ -355,6 +377,7 @@
   <button onclick="showSection('questions', this)">Q&A</button>
   <button onclick="showSection('test', this)">Test</button>
   <button onclick="showSection('matching', this)">Matching</button>
+  <button onclick="showSection('mnemonics', this)">Mnemonics</button>
   <div class="score-display">
     <span>Mastery</span>
     <svg class="progress-ring" viewBox="0 0 40 40">
@@ -433,6 +456,12 @@
       <div id="match-defs"></div>
     </div>
   </div>
+</div>
+
+<div class="section" id="sec-mnemonics">
+  <h2>Mnemonics</h2>
+  <p class="subtitle">Tricks to lock the unit into memory.</p>
+  <div id="mnemonics-list"></div>
 </div>
 
 <div class="results-overlay" id="results-overlay">
@@ -515,6 +544,68 @@ const KEY_QUESTIONS = [
 let allCards = [...KEY_TERMS, ...KEY_PEOPLE, ...KEY_EVENTS];
 let filteredCards = [...allCards];
 let cardIndex = 0;
+
+// ============ MNEMONICS ============
+const MNEMONICS = [
+  {
+    title: "Six Motives of Imperialism",
+    hook: "EMPIRE",
+    body: "Imperialism builds an empire — the word spells the motives:<ul><li><strong>E</strong> — Economics (markets, raw materials, sugar)</li><li><strong>M</strong> — Military (bases, Pearl Harbor, Guantánamo)</li><li><strong>P</strong> — Political (prestige, great-power status)</li><li><strong>I</strong> — Ideological (cultural/racial 'superiority')</li><li><strong>R</strong> — Religion (missionary work)</li><li><strong>E</strong> — Exploration (discovery, mapping, claiming)</li></ul>"
+  },
+  {
+    title: "Causes of the Spanish-American War",
+    hook: "My Wild Yellow Dog, Maine",
+    body: "Walk through the dominoes that pushed the US into war (1895 → 1898):<ul><li><strong>M</strong>artí launches Cuba's 2nd Revolution (1895)</li><li><strong>W</strong>eyler's reconcentration camps (1896)</li><li><strong>Y</strong>ellow journalism (Hearst & Pulitzer)</li><li><strong>D</strong>e Lôme letter insults McKinley</li><li><strong>Maine</strong> explodes in Havana Harbor (Feb 15, 1898)</li></ul>"
+  },
+  {
+    title: "Spoils of the Treaty of Paris (1898)",
+    hook: "PGP — \"Please Get Paid\"",
+    body: "The three territories Spain handed to the US:<ul><li><strong>P</strong>uerto Rico (ceded)</li><li><strong>G</strong>uam (ceded)</li><li><strong>P</strong>hilippines (sold for $20 million)</li></ul>Cuba became nominally independent."
+  },
+  {
+    title: "Puerto Rico's Two Acts",
+    hook: "Foraker First, Jones Joins",
+    body: "<strong>F</strong>oraker Act (<strong>1900</strong>) — sets up civil government; Puerto Ricans are 'citizens of Puerto Rico' only.<br><strong>J</strong>ones Act (<strong>1917</strong>) — Puerto Ricans <em>join</em> the US as citizens (just in time to be drafted into WWI).<br>Think: F → J alphabetically, 1900 → 1917 chronologically."
+  },
+  {
+    title: "1898 — The Year of Empire",
+    hook: "Four in '98",
+    body: "Everything happens in 1898. Lock these four:<ul><li>USS <strong>Maine</strong> explodes (Feb)</li><li><strong>Spanish-American War</strong> (Apr–Aug)</li><li><strong>Hawaii annexed</strong></li><li><strong>Treaty of Paris</strong> — PR, Guam, Philippines (Dec)</li></ul>"
+  },
+  {
+    title: "Hawaii's Overthrow",
+    hook: "Sugar, Marines, Queen",
+    body: "Three ingredients of the 1893 coup:<ul><li><strong>Sugar</strong> planters wanted tariff-free access to US markets</li><li><strong>Marines</strong> from the US backed the coup</li><li><strong>Queen</strong> Lili'uokalani was overthrown</li></ul>Formal <strong>annexation in 1898</strong>; statehood in 1959."
+  },
+  {
+    title: "Yellow Journalism's Rallying Cry",
+    hook: "\"Remember the Maine, to Hell with Spain!\"",
+    body: "The slogan Hearst's papers ran after the USS Maine exploded. If a quiz asks about yellow journalism's role — quote this line. It captures both the <strong>sensationalism</strong> and the <strong>war fever</strong> that pushed McKinley toward war."
+  },
+  {
+    title: "Cuba's Two Revolutions",
+    hook: "10 then 3",
+    body: "<strong>First Revolution</strong> = <strong>Ten</strong> Years' War (1868–1878) — failed, but planted the seeds.<br><strong>Second Revolution</strong> = ~<strong>Three</strong> years (1895–1898) — Martí starts it, US ends it."
+  },
+  {
+    title: "Territory Status Today",
+    hook: "Un- = no full Constitution",
+    body: "<strong>Un</strong>incorporated territory = <strong>Un</strong>full Constitution. Only fundamental rights apply automatically.<br>Puerto Ricans <strong>are</strong> US citizens but on the island <strong>cannot vote for president</strong> and have only a non-voting delegate in Congress."
+  }
+];
+
+function buildMnemonics() {
+  const container = document.getElementById('mnemonics-list');
+  MNEMONICS.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'mnemonic-card';
+    div.innerHTML = `
+      <div class="mn-title">${m.title}</div>
+      <div class="mn-hook">${m.hook}</div>
+      <div class="mn-body">${m.body}</div>`;
+    container.appendChild(div);
+  });
+}
 
 // ============ NAVIGATION ============
 function showSection(name, btn) {
@@ -929,6 +1020,7 @@ buildDeck();
 buildBrowse('all');
 buildTimeline();
 buildQA();
+buildMnemonics();
 </script>
 </body>
 </html>
