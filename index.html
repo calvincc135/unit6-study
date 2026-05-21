@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit 6: US Territories History</title>
+<style>
+  :root {
+    --bg: #07140c;
+    --surface: #102818;
+    --surface2: #173b22;
+    --accent: #22c55e;
+    --accent2: #facc15;
+    --accent3: #38bdf8;
+    --text: #e8f5ec;
+    --text-dim: #8aa896;
+    --correct: #22c55e;
+    --wrong: #ef4444;
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(7,20,12,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(34,197,94,0.25);
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 8px;
+    height: 60px;
+  }
+  nav .logo {
+    font-weight: 800; font-size: 1.1rem; color: var(--accent);
+    margin-right: 24px; white-space: nowrap;
+  }
+  nav button {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 0.9rem; padding: 8px 16px; cursor: pointer;
+    border-radius: 8px; transition: all 0.2s;
+    font-weight: 600;
+  }
+  nav button:hover { color: var(--text); background: var(--surface2); }
+  nav button.active { color: var(--accent); background: var(--surface); }
+  .score-display {
+    margin-left: auto;
+    font-size: 0.85rem; color: var(--text-dim);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .score-display .streak { color: var(--accent); font-weight: 700; }
+  .progress-ring { width: 36px; height: 36px; }
+  .progress-ring circle { fill: none; stroke-width: 3; }
+  .progress-ring .bg { stroke: var(--surface2); }
+  .progress-ring .fg { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.5s; }
+
+  /* SECTIONS */
+  .section { display: none; padding: 32px 24px; max-width: 960px; margin: 0 auto; }
+  .section.active { display: block; }
+  .section h2 {
+    font-size: 1.6rem; margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .section .subtitle { color: var(--text-dim); margin-bottom: 24px; font-size: 0.95rem; }
+
+  /* FLASHCARD DECK */
+  .deck-container {
+    position: relative;
+    width: 100%; max-width: 600px; margin: 0 auto 24px;
+    height: 360px;
+    perspective: 1200px;
+  }
+  .deck-card {
+    position: absolute; inset: 0;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease, opacity 0.5s ease, top 0.4s ease, left 0.4s ease, box-shadow 0.3s ease;
+    border-radius: var(--radius);
+  }
+  .deck-card[data-depth="0"] { z-index: 10; top: 0; left: 0; filter: none; }
+  .deck-card[data-depth="1"] { z-index: 9; top: 12px; left: 0; opacity: 0.85; pointer-events: none; transform: scale(0.96); filter: brightness(0.7); }
+  .deck-card[data-depth="2"] { z-index: 8; top: 24px; left: 0; opacity: 0.65; pointer-events: none; transform: scale(0.92); filter: brightness(0.5); }
+  .deck-card[data-depth="3"] { z-index: 7; top: 36px; left: 0; opacity: 0.45; pointer-events: none; transform: scale(0.88); filter: brightness(0.35); }
+  .deck-card[data-depth="hidden"] { z-index: 1; top: 0; left: 0; opacity: 0; pointer-events: none; }
+
+  .deck-card .card-inner {
+    position: relative; width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.5s ease;
+  }
+  .deck-card.flipped .card-inner { transform: rotateY(180deg); }
+
+  .deck-card[data-depth="0"] .card-face {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,197,94,0.25);
+  }
+  .deck-card .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    background: var(--surface);
+    border: 1px solid rgba(34,197,94,0.18);
+    border-radius: var(--radius);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px; text-align: center;
+    overflow-y: auto;
+  }
+  .deck-card .card-back { transform: rotateY(180deg); }
+  .deck-card .card-face .label {
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--accent); margin-bottom: 16px;
+  }
+  .deck-card .card-face .term { font-size: 1.5rem; font-weight: 700; }
+  .deck-card .card-face .definition { font-size: 1.05rem; line-height: 1.6; color: var(--text-dim); }
+
+  .deck-card.swipe-left {
+    transform: translateX(-140%) rotate(-18deg) !important;
+    opacity: 0 !important;
+    transition: transform 0.45s ease-in, opacity 0.45s ease-in !important;
+  }
+  .deck-card.swipe-right {
+    transform: translateX(140%) rotate(18deg) !important;
+    opacity: 0 !important;
+    transition: transform 0.45s ease-in, opacity 0.45s ease-in !important;
+  }
+  .deck-card.arriving {
+    transition: top 0.35s ease-out, left 0.35s ease-out, opacity 0.35s ease-out !important;
+  }
+
+  .flashcard-controls { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .flashcard-controls button {
+    padding: 10px 24px; border: none; border-radius: 8px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-prev, .btn-next { background: var(--surface2); color: var(--text); }
+  .btn-prev:hover, .btn-next:hover { background: var(--accent); color: var(--bg); }
+  .btn-shuffle { background: var(--surface); color: var(--accent); border: 1px solid var(--accent) !important; }
+  .btn-shuffle:hover { background: var(--accent); color: var(--bg); }
+  .card-counter { color: var(--text-dim); font-size: 0.9rem; min-width: 80px; text-align: center; }
+  .flip-hint { color: var(--text-dim); font-size: 0.8rem; margin-top: 8px; text-align: center; }
+
+  /* CATEGORY FILTER */
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-bar button {
+    padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;
+    border: 1px solid var(--surface2); background: var(--surface);
+    color: var(--text-dim); cursor: pointer; transition: all 0.2s; font-weight: 600;
+  }
+  .filter-bar button.active { border-color: var(--accent); color: var(--accent); background: rgba(34,197,94,0.12); }
+
+  /* BROWSE LIST */
+  .browse-list { display: flex; flex-direction: column; gap: 8px; }
+  .browse-item {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.05);
+    overflow: hidden; transition: all 0.2s;
+  }
+  .browse-item:hover { border-color: rgba(34,197,94,0.35); }
+  .browse-header {
+    padding: 16px 20px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .browse-header .term-name { font-weight: 700; font-size: 1rem; }
+  .browse-header .tag {
+    font-size: 0.7rem; padding: 3px 10px; border-radius: 12px;
+    background: rgba(34,197,94,0.18); color: var(--accent);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .browse-header .arrow { color: var(--text-dim); transition: transform 0.2s; font-size: 1.2rem; }
+  .browse-item.open .arrow { transform: rotate(90deg); }
+  .browse-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+  .browse-item.open .browse-body { max-height: 500px; }
+  .browse-body-inner {
+    padding: 0 20px 16px;
+    color: var(--text-dim); line-height: 1.7; font-size: 0.95rem;
+  }
+
+  /* TIMELINE */
+  .timeline { position: relative; padding-left: 40px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 15px; top: 0; bottom: 0;
+    width: 2px; background: linear-gradient(to bottom, var(--accent), var(--accent3), var(--accent2));
+  }
+  .timeline-item {
+    position: relative; margin-bottom: 20px; padding: 16px 20px;
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.2s;
+  }
+  .timeline-item:hover { border-color: rgba(34,197,94,0.35); transform: translateX(4px); }
+  .timeline-item::before {
+    content: ''; position: absolute; left: -33px; top: 20px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--bg);
+  }
+  .timeline-item.major::before { width: 16px; height: 16px; left: -35px; top: 18px; }
+  .timeline-item.major { border-color: rgba(34,197,94,0.3); }
+  .timeline-date { font-weight: 800; color: var(--accent); font-size: 0.9rem; margin-bottom: 4px; }
+  .timeline-event { color: var(--text-dim); font-size: 0.95rem; }
+  .timeline-item.major .timeline-event { color: var(--text); font-weight: 600; }
+
+  /* KEY QUESTIONS */
+  .qa-card {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .qa-question {
+    padding: 16px 20px; cursor: pointer; font-weight: 700;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .qa-question .num {
+    background: var(--accent); color: var(--bg); font-size: 0.75rem;
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-weight: 800;
+  }
+  .qa-answer { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .qa-card.open .qa-answer { max-height: 700px; }
+  .qa-answer-inner {
+    padding: 0 20px 16px 56px;
+    color: var(--text-dim); line-height: 1.7; font-size: 0.95rem;
+  }
+  .qa-answer-inner strong { color: var(--text); }
+
+  /* TEST MODE */
+  .test-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .test-score { font-size: 1.1rem; font-weight: 700; display: flex; gap: 20px; align-items: center; }
+  .test-score .correct-count { color: var(--correct); }
+  .test-score .wrong-count { color: var(--wrong); }
+  .test-actions { display: flex; gap: 8px; }
+  .test-actions button {
+    padding: 8px 20px; border: none; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-new-test { background: var(--accent); color: var(--bg); }
+  .btn-new-test:hover { filter: brightness(1.15); }
+  .btn-check-all { background: var(--surface2); color: var(--text); }
+  .btn-check-all:hover { background: var(--accent3); color: var(--bg); }
+
+  .test-question {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 20px 24px; margin-bottom: 16px;
+    transition: border-color 0.3s;
+  }
+  .test-question.answered-correct { border-color: var(--correct); }
+  .test-question.answered-wrong { border-color: var(--wrong); }
+  .test-question .q-num {
+    font-size: 0.75rem; color: var(--accent); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+  }
+  .test-question .q-type {
+    display: inline-block; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px;
+    background: var(--surface2); color: var(--text-dim); margin-left: 8px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .test-question .q-text { font-size: 1.05rem; line-height: 1.6; margin-bottom: 12px; }
+  .test-question .q-text .blank {
+    display: inline-block;
+    border-bottom: 2px solid var(--accent);
+    min-width: 120px; margin: 0 4px;
+    color: transparent;
+  }
+  .test-question input[type="text"] {
+    width: 100%; padding: 10px 14px;
+    background: var(--surface2); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; color: var(--text); font-size: 0.95rem;
+    outline: none; transition: border-color 0.2s;
+  }
+  .test-question input[type="text"]:focus { border-color: var(--accent); }
+  .test-question input.correct { border-color: var(--correct); background: rgba(34,197,94,0.12); }
+  .test-question input.wrong { border-color: var(--wrong); background: rgba(239,68,68,0.12); }
+  .test-question .feedback { margin-top: 8px; font-size: 0.85rem; display: none; }
+  .test-question .feedback.show { display: block; }
+  .test-question .feedback.correct-fb { color: var(--correct); }
+  .test-question .feedback.wrong-fb { color: var(--wrong); }
+  .test-question .check-btn {
+    margin-top: 10px; padding: 6px 16px; border: none; border-radius: 6px;
+    background: var(--accent); color: var(--bg); font-weight: 700;
+    font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+  }
+  .test-question .check-btn:hover { filter: brightness(1.15); }
+  .test-question .check-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* MATCHING */
+  .matching-container {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    margin-bottom: 24px;
+  }
+  .matching-col h3 {
+    font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-dim); margin-bottom: 12px;
+  }
+  .match-item {
+    padding: 12px 16px; margin-bottom: 8px;
+    background: var(--surface); border-radius: 8px;
+    border: 2px solid transparent; cursor: pointer;
+    transition: all 0.2s; font-size: 0.9rem;
+  }
+  .match-item:hover { border-color: rgba(34,197,94,0.35); }
+  .match-item.selected { border-color: var(--accent); background: rgba(34,197,94,0.12); }
+  .match-item.matched-correct {
+    border-color: var(--correct); background: rgba(34,197,94,0.12);
+    opacity: 0.6; pointer-events: none;
+  }
+  .match-item.matched-wrong { border-color: var(--wrong); background: rgba(239,68,68,0.12); }
+
+  /* RESULTS MODAL */
+  .results-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .results-overlay.show { display: flex; }
+  .results-card {
+    background: var(--surface); border-radius: 16px;
+    padding: 40px; text-align: center; max-width: 400px;
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+  .results-card .big-score { font-size: 3rem; font-weight: 800; color: var(--accent); margin: 16px 0; }
+  .results-card .grade-msg { font-size: 1.1rem; margin-bottom: 20px; color: var(--text-dim); }
+  .results-card button {
+    padding: 10px 28px; border: none; border-radius: 8px;
+    background: var(--accent); color: var(--bg); font-weight: 700;
+    font-size: 1rem; cursor: pointer;
+  }
+
+  @media (max-width: 640px) {
+    nav { padding: 0 12px; gap: 4px; }
+    nav .logo { font-size: 0.9rem; margin-right: 8px; }
+    nav button { padding: 6px 10px; font-size: 0.8rem; }
+    .section { padding: 20px 16px; }
+    .matching-container { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Unit 6</div>
+  <button class="active" onclick="showSection('flashcards', this)">Flashcards</button>
+  <button onclick="showSection('browse', this)">Browse</button>
+  <button onclick="showSection('timeline', this)">Timeline</button>
+  <button onclick="showSection('questions', this)">Q&A</button>
+  <button onclick="showSection('test', this)">Test</button>
+  <button onclick="showSection('matching', this)">Matching</button>
+  <div class="score-display">
+    <span>Mastery</span>
+    <svg class="progress-ring" viewBox="0 0 40 40">
+      <circle class="bg" cx="20" cy="20" r="17"/>
+      <circle class="fg" id="masteryRing" cx="20" cy="20" r="17"
+        stroke-dasharray="106.8" stroke-dashoffset="106.8"
+        transform="rotate(-90 20 20)"/>
+    </svg>
+    <span class="streak" id="masteryPct">0%</span>
+  </div>
+</nav>
+
+<div class="section active" id="sec-flashcards">
+  <h2>Flashcards</h2>
+  <p class="subtitle">Click to flip. Swipe or use arrows to send the top card to the back of the deck.</p>
+  <div class="filter-bar" id="flashcard-filters"></div>
+  <div class="deck-container" id="deck-container"></div>
+  <p class="flip-hint">Click/Space = flip &nbsp; | &nbsp; Arrow keys = next/prev</p>
+  <div class="flashcard-controls">
+    <button class="btn-prev" onclick="prevCard()">Previous</button>
+    <span class="card-counter" id="card-counter">1 / 1</span>
+    <button class="btn-next" onclick="nextCard()">Next</button>
+    <button class="btn-shuffle" onclick="shuffleCards()">Shuffle</button>
+  </div>
+</div>
+
+<div class="section" id="sec-browse">
+  <h2>Browse All</h2>
+  <p class="subtitle">Expand any item to read the full definition.</p>
+  <div class="filter-bar" id="browse-filters"></div>
+  <div class="browse-list" id="browse-list"></div>
+</div>
+
+<div class="section" id="sec-timeline">
+  <h2>Timeline</h2>
+  <p class="subtitle">Key dates in US Territories History — Cuba, Puerto Rico, Hawaii.</p>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<div class="section" id="sec-questions">
+  <h2>Key Questions</h2>
+  <p class="subtitle">From the Unit 6 Study Guide. Click a question to reveal the answer.</p>
+  <div id="qa-list"></div>
+</div>
+
+<div class="section" id="sec-test">
+  <h2>Test Mode</h2>
+  <p class="subtitle">Fill-in-the-blank and short answer — same format as the real quiz (30 pts).</p>
+  <div class="test-header">
+    <div class="test-score">
+      <span>Score: <span class="correct-count" id="test-correct">0</span> / <span id="test-total">0</span></span>
+      <span class="wrong-count" id="test-wrong-display"></span>
+    </div>
+    <div class="test-actions">
+      <button class="btn-check-all" onclick="checkAllAnswers()">Check All</button>
+      <button class="btn-new-test" onclick="generateTest()">New Test</button>
+    </div>
+  </div>
+  <div id="test-questions"></div>
+</div>
+
+<div class="section" id="sec-matching">
+  <h2>Matching</h2>
+  <p class="subtitle">Match each term to its definition. Click one from each column.</p>
+  <div class="test-actions" style="margin-bottom:16px">
+    <button class="btn-new-test" onclick="generateMatching()">New Round</button>
+    <span class="test-score" id="match-score"></span>
+  </div>
+  <div class="matching-container">
+    <div class="matching-col">
+      <h3>Terms</h3>
+      <div id="match-terms"></div>
+    </div>
+    <div class="matching-col">
+      <h3>Definitions</h3>
+      <div id="match-defs"></div>
+    </div>
+  </div>
+</div>
+
+<div class="results-overlay" id="results-overlay">
+  <div class="results-card">
+    <h2>Test Complete!</h2>
+    <div class="big-score" id="result-score">0%</div>
+    <div class="grade-msg" id="result-msg"></div>
+    <button onclick="closeResults()">Try Again</button>
+  </div>
+</div>
+
+<script>
+// ============ DATA (from Unit 6 Study Guide + Canvas page) ============
+const KEY_TERMS = [
+  { term: "Empire", def: "A group of territories or peoples ruled by a single supreme authority. In this unit, refers to the United States extending its rule over Cuba, Puerto Rico, the Philippines, Guam, and Hawaii after 1898.", cat: "concepts" },
+  { term: "Imperialism", def: "The policy of extending a country's power and influence through colonization, military force, or economic and political dominance. Drove US expansion into the Pacific and Caribbean at the end of the 1800s.", cat: "concepts" },
+  { term: "Economics (Motive)", def: "One of the six motives of imperialism. Nations expand to gain raw materials, new markets, and trade routes. Sugar in Cuba and Hawaii, and access to Asian markets, motivated US expansion.", cat: "concepts" },
+  { term: "Military (Motive)", def: "One of the six motives of imperialism. Nations seek naval bases, coaling stations, and strategic territory. The US wanted Pearl Harbor, Guantánamo Bay, and bases in the Philippines for power projection.", cat: "concepts" },
+  { term: "Ideological (Motive)", def: "One of the six motives of imperialism. Belief that one's culture, race, or way of life is superior and should be spread — e.g., 'White Man's Burden' and Social Darwinism used to justify US rule over territories.", cat: "concepts" },
+  { term: "Political (Motive)", def: "One of the six motives of imperialism. Nations compete for prestige, status, and balance of power. The US wanted to be seen as a great power alongside European empires.", cat: "concepts" },
+  { term: "Religion (Motive)", def: "One of the six motives of imperialism. The drive to spread Christianity. American missionaries pushed for involvement in Hawaii and the Philippines.", cat: "concepts" },
+  { term: "Exploration (Motive)", def: "One of the six motives of imperialism. The drive to discover, map, and claim new lands — and the scientific, geographic prestige that came with it.", cat: "concepts" },
+  { term: "Armistice", def: "An agreement to stop fighting; a truce. The Spanish-American War ended with an armistice in August 1898 and was formally settled by the Treaty of Paris.", cat: "concepts" },
+  { term: "Martyr", def: "A person who is killed or suffers for a cause and becomes a symbol for it. José Julián Martí died in battle in 1895 and became a martyr for Cuban independence.", cat: "concepts" },
+  { term: "Yellow Journalism", def: "Sensational, exaggerated, often inaccurate newspaper reporting used to stir public emotion. Hearst and Pulitzer's coverage of Spanish atrocities in Cuba and the USS Maine helped push the US into war with Spain.", cat: "concepts" },
+  { term: "Unincorporated Territories", def: "US territories where the full Constitution does NOT automatically apply — only 'fundamental' rights. Puerto Rico, Guam, American Samoa, and the US Virgin Islands are unincorporated.", cat: "concepts" },
+  { term: "Organized Territories", def: "US territories that Congress has given a formal government structure to through an organic act. Status defines how the territory is governed and what laws apply.", cat: "concepts" },
+  { term: "Foraker Act", def: "1900 law that established a civil government in Puerto Rico after the Spanish-American War. Set up a US-appointed governor and made Puerto Ricans 'citizens of Puerto Rico' — NOT US citizens.", cat: "legislation" },
+  { term: "Jones Act", def: "1917 law that granted US citizenship to Puerto Ricans and reorganized the island's government. Passed just before US entry into WWI; Puerto Ricans became eligible for the military draft.", cat: "legislation" },
+  { term: "Annexation", def: "The formal act of one country taking control of another territory and incorporating it. The US annexed Hawaii in 1898 after American businessmen overthrew Queen Lili'uokalani.", cat: "concepts" },
+  { term: "Yellow Journalism (Maine)", def: "After the USS Maine exploded in Havana Harbor (Feb 15, 1898), Hearst and Pulitzer's papers blamed Spain with the slogan 'Remember the Maine, to Hell with Spain!' — accelerating war.", cat: "events" },
+];
+
+const KEY_PEOPLE = [
+  { term: "José Julián Martí", def: "Cuban poet, writer, and revolutionary leader. Organized the Second Cuban Revolution from exile and returned to fight in 1895. Killed in battle that year — became the martyr and symbol of Cuban independence.", cat: "people" },
+  { term: "General Valeriano Weyler", def: "Spanish general sent to crush the Cuban revolt in 1896. Created brutal 'reconcentration camps' that herded Cuban civilians into camps where many died of disease and starvation. His tactics fueled US public outrage.", cat: "people" },
+  { term: "President McKinley", def: "US president (1897–1901) during the Spanish-American War. Initially hesitant to go to war, but pushed by yellow journalism, the USS Maine, and the de Lôme letter. Oversaw US acquisition of Puerto Rico, Guam, the Philippines, and Hawaii.", cat: "people" },
+  { term: "Queen Lili'uokalani", def: "Last reigning monarch of Hawaii. Tried to restore power to native Hawaiians and limit foreign influence. Overthrown in 1893 by American sugar planters backed by US Marines. Hawaii was annexed by the US in 1898.", cat: "people" },
+  { term: "Taínos", def: "Indigenous people of Puerto Rico (and the wider Caribbean) before European contact. Their population collapsed under Spanish colonization through disease, forced labor, and violence. Their language and culture still shape Puerto Rican identity today.", cat: "people" },
+];
+
+const KEY_EVENTS = [
+  { term: "Cuban First Revolution", def: "1868–1878 (Ten Years' War). First major Cuban uprising against Spanish rule. Failed to win independence but planted the seeds for the second revolution and produced leaders like Martí.", cat: "events" },
+  { term: "Cuban Second Revolution", def: "1895–1898. Launched by José Martí and other exiles. Spain responded with General Weyler's reconcentration camps. US intervention in 1898 ended Spanish rule.", cat: "events" },
+  { term: "Spanish-American War", def: "1898 war between the US and Spain, triggered by the Cuban revolution, the USS Maine explosion, and yellow journalism. Ended quickly with US victory. Treaty of Paris (1898) gave the US Puerto Rico, Guam, and the Philippines; Cuba became nominally independent.", cat: "events" },
+  { term: "Treaty of Paris (1898)", def: "Ended the Spanish-American War. Spain gave up Cuba, ceded Puerto Rico and Guam to the US, and sold the Philippines to the US for $20 million. Marked the US as a global imperial power.", cat: "events" },
+  { term: "Annexation of Hawaii", def: "1898. American sugar planters overthrew Queen Lili'uokalani in 1893; the US formally annexed Hawaii in 1898 during the Spanish-American War for its sugar economy and Pearl Harbor naval base.", cat: "events" },
+  { term: "USS Maine Explosion", def: "Feb 15, 1898. The US battleship USS Maine exploded in Havana Harbor, killing 260 sailors. The cause was unclear, but yellow journalism blamed Spain and pushed the US into war.", cat: "events" },
+];
+
+const TIMELINE_DATA = [
+  { date: "Pre-1492", event: "Taínos inhabit Puerto Rico and the Caribbean", major: false },
+  { date: "1493", event: "Spain colonizes Puerto Rico — Taíno population devastated", major: true },
+  { date: "1868–1878", event: "Cuba's First Revolution (Ten Years' War) against Spain", major: true },
+  { date: "1893", event: "American planters overthrow Queen Lili'uokalani in Hawaii", major: true },
+  { date: "1895", event: "José Martí launches Cuba's Second Revolution; dies in battle", major: true },
+  { date: "1896", event: "General Weyler begins reconcentration camps in Cuba", major: false },
+  { date: "Feb 15, 1898", event: "USS Maine explodes in Havana Harbor", major: true },
+  { date: "Apr–Aug 1898", event: "Spanish-American War", major: true },
+  { date: "Jul 25, 1898", event: "US begins invasion of Puerto Rico", major: false },
+  { date: "1898", event: "US annexes Hawaii", major: true },
+  { date: "Dec 1898", event: "Treaty of Paris — Spain cedes Puerto Rico, Guam, Philippines", major: true },
+  { date: "1900", event: "Foraker Act — civil government for Puerto Rico", major: true },
+  { date: "1917", event: "Jones Act — US citizenship granted to Puerto Ricans", major: true },
+  { date: "1959", event: "Hawaii becomes the 50th US state", major: false },
+];
+
+const KEY_QUESTIONS = [
+  { q: "What is imperialism?", a: "The policy of one country extending its power and influence over another through <strong>colonization, military force, or economic and political control</strong>. At the end of the 1800s, the US joined European empires in imperial expansion." },
+  { q: "What are the six motives of imperialism?", a: "<strong>Economics</strong> (raw materials, markets, trade routes), <strong>Military</strong> (bases, strategic position), <strong>Ideological</strong> (cultural/racial superiority), <strong>Political</strong> (prestige, balance of power), <strong>Religion</strong> (missionary work, spreading Christianity), <strong>Exploration</strong> (discovery, mapping, claiming)." },
+  { q: "What events led to the Spanish-American War?", a: "The <strong>Cuban Second Revolution (1895)</strong> led by José Martí. Spanish <strong>General Weyler's reconcentration camps</strong>. <strong>Yellow journalism</strong> by Hearst and Pulitzer. The <strong>de Lôme letter</strong> insulting McKinley. The <strong>explosion of the USS Maine</strong> in Havana Harbor (Feb 15, 1898). All combined to push the US into war in April 1898." },
+  { q: "What is the Treaty of Paris?", a: "The <strong>1898 treaty ending the Spanish-American War</strong>. Spain gave up Cuba (which became nominally independent), <strong>ceded Puerto Rico and Guam to the US</strong>, and <strong>sold the Philippines to the US for $20 million</strong>. Marked the US as a global imperial power." },
+  { q: "What is the grand narrative (history) of Cuba, Puerto Rico, and Hawaii?", a: "All three were <strong>colonized by foreign powers</strong> (Spain for Cuba/PR, native monarchy displaced by American planters in Hawaii). <strong>Indigenous and local populations were displaced or harmed</strong>. The <strong>US gained control in 1898</strong> through war (Cuba, PR) and annexation (Hawaii). Today: Cuba is independent, <strong>Puerto Rico is an unincorporated US territory</strong>, and <strong>Hawaii is a US state since 1959</strong>." },
+  { q: "Why did the United States sympathize with the Cuban Revolution in the 1800s?", a: "Cubans were <strong>fighting against a European colonial power</strong> (Spain) — echoing America's own revolution against Britain. Americans saw parallels with their fight for independence and <strong>self-government</strong>. <strong>Yellow journalism</strong> amplified Spanish atrocities, fueling public sympathy. The US also had <strong>economic interests in Cuban sugar</strong>." },
+  { q: "What does citizenship look like in US territories today? What does it mean to be a citizen of a territory?", a: "<strong>Puerto Ricans are US citizens</strong> (since the Jones Act, 1917), but living on the island they <strong>cannot vote for president</strong> and have only a <strong>non-voting delegate in Congress</strong>. They <strong>pay some federal taxes</strong> but not federal income tax on PR-sourced income. As unincorporated territories, <strong>not all Constitutional rights automatically apply</strong>. Similar limits exist for Guam, American Samoa, and the US Virgin Islands." },
+  { q: "How did the United States annex Hawaii?", a: "<strong>American sugar planters</strong> in Hawaii wanted to avoid US tariffs and gain political control. In <strong>1893</strong>, they overthrew <strong>Queen Lili'uokalani</strong> with help from US Marines and set up a provisional government. Hawaii was <strong>formally annexed by the US in 1898</strong> during the Spanish-American War — valued for its sugar economy and the naval base at <strong>Pearl Harbor</strong>." },
+];
+
+// ============ ALL CARDS ============
+let allCards = [...KEY_TERMS, ...KEY_PEOPLE, ...KEY_EVENTS];
+let filteredCards = [...allCards];
+let cardIndex = 0;
+
+// ============ NAVIGATION ============
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (name === 'test' && document.getElementById('test-questions').children.length === 0) generateTest();
+  if (name === 'matching' && document.getElementById('match-terms').children.length === 0) generateMatching();
+}
+
+// ============ FLASHCARDS (DECK) ============
+let isAnimating = false;
+const VISIBLE_STACK = 4;
+
+function buildDeck() {
+  const container = document.getElementById('deck-container');
+  container.innerHTML = '';
+  if (filteredCards.length === 0) return;
+  filteredCards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'deck-card';
+    el.dataset.index = i;
+    const labelText = card.cat === 'people' ? 'Person / Group' : (card.cat === 'events' ? 'Event' : (card.cat === 'legislation' ? 'Legislation' : 'Term'));
+    el.innerHTML = `
+      <div class="card-inner">
+        <div class="card-face card-front">
+          <div class="label">${labelText}</div>
+          <div class="term">${card.term}</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="label">Definition</div>
+          <div class="definition">${card.def}</div>
+        </div>
+      </div>`;
+    el.addEventListener('click', () => {
+      if (el.dataset.depth === '0' && !isAnimating) flipTopCard();
+    });
+    container.appendChild(el);
+  });
+  cardIndex = 0;
+  layoutDeck();
+}
+
+function layoutDeck() {
+  const cards = document.querySelectorAll('#deck-container .deck-card');
+  const total = filteredCards.length;
+  cards.forEach(el => {
+    const i = parseInt(el.dataset.index);
+    let offset = (i - cardIndex + total) % total;
+    if (offset < VISIBLE_STACK) el.dataset.depth = offset;
+    else el.dataset.depth = 'hidden';
+    el.classList.remove('swipe-left', 'swipe-right', 'flipped', 'arriving');
+  });
+  document.getElementById('card-counter').textContent = `${cardIndex + 1} / ${total}`;
+}
+
+function flipTopCard() {
+  const top = document.querySelector('.deck-card[data-depth="0"]');
+  if (top) top.classList.toggle('flipped');
+}
+
+function nextCard() {
+  if (isAnimating || filteredCards.length === 0) return;
+  isAnimating = true;
+  const top = document.querySelector('.deck-card[data-depth="0"]');
+  top.classList.add('swipe-left');
+  setTimeout(() => {
+    cardIndex = (cardIndex + 1) % filteredCards.length;
+    top.classList.remove('swipe-left', 'flipped');
+    layoutDeck();
+    document.querySelectorAll('#deck-container .deck-card').forEach(c => {
+      if (c.dataset.depth !== 'hidden') c.classList.add('arriving');
+    });
+    setTimeout(() => {
+      document.querySelectorAll('.deck-card.arriving').forEach(c => c.classList.remove('arriving'));
+      isAnimating = false;
+    }, 350);
+  }, 400);
+}
+
+function prevCard() {
+  if (isAnimating || filteredCards.length === 0) return;
+  isAnimating = true;
+  const top = document.querySelector('.deck-card[data-depth="0"]');
+  top.classList.add('swipe-right');
+  setTimeout(() => {
+    cardIndex = (cardIndex - 1 + filteredCards.length) % filteredCards.length;
+    top.classList.remove('swipe-right', 'flipped');
+    layoutDeck();
+    document.querySelectorAll('#deck-container .deck-card').forEach(c => {
+      if (c.dataset.depth !== 'hidden') c.classList.add('arriving');
+    });
+    setTimeout(() => {
+      document.querySelectorAll('.deck-card.arriving').forEach(c => c.classList.remove('arriving'));
+      isAnimating = false;
+    }, 350);
+  }, 400);
+}
+
+function shuffleCards() {
+  for (let i = filteredCards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [filteredCards[i], filteredCards[j]] = [filteredCards[j], filteredCards[i]];
+  }
+  cardIndex = 0;
+  buildDeck();
+}
+
+let touchStartX = 0;
+document.getElementById('deck-container').addEventListener('touchstart', (e) => {
+  touchStartX = e.touches[0].clientX;
+}, { passive: true });
+document.getElementById('deck-container').addEventListener('touchend', (e) => {
+  const diff = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(diff) > 60) {
+    if (diff < 0) nextCard(); else prevCard();
+  }
+}, { passive: true });
+
+function buildFilters(containerId, onFilter) {
+  const cats = ['all', ...new Set(allCards.map(c => c.cat))];
+  const container = document.getElementById(containerId);
+  cats.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+    if (cat === 'all') btn.classList.add('active');
+    btn.onclick = () => {
+      container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onFilter(cat);
+    };
+    container.appendChild(btn);
+  });
+}
+
+function filterFlashcards(cat) {
+  filteredCards = cat === 'all' ? [...allCards] : allCards.filter(c => c.cat === cat);
+  cardIndex = 0; buildDeck();
+}
+
+// ============ BROWSE ============
+function buildBrowse(cat) {
+  const list = document.getElementById('browse-list');
+  list.innerHTML = '';
+  const items = cat === 'all' ? allCards : allCards.filter(c => c.cat === cat);
+  items.forEach(card => {
+    const div = document.createElement('div');
+    div.className = 'browse-item';
+    div.innerHTML = `
+      <div class="browse-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="term-name">${card.term}</span>
+        <span style="display:flex;gap:8px;align-items:center">
+          <span class="tag">${card.cat}</span>
+          <span class="arrow">&#9654;</span>
+        </span>
+      </div>
+      <div class="browse-body"><div class="browse-body-inner">${card.def}</div></div>`;
+    list.appendChild(div);
+  });
+}
+
+// ============ TIMELINE ============
+function buildTimeline() {
+  const container = document.getElementById('timeline');
+  TIMELINE_DATA.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'timeline-item' + (item.major ? ' major' : '');
+    div.innerHTML = `<div class="timeline-date">${item.date}</div><div class="timeline-event">${item.event}</div>`;
+    container.appendChild(div);
+  });
+}
+
+// ============ Q&A ============
+function buildQA() {
+  const container = document.getElementById('qa-list');
+  KEY_QUESTIONS.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'qa-card';
+    div.innerHTML = `
+      <div class="qa-question" onclick="this.parentElement.classList.toggle('open')">
+        <span class="num">${i + 1}</span>
+        <span>${item.q}</span>
+      </div>
+      <div class="qa-answer"><div class="qa-answer-inner">${item.a}</div></div>`;
+    container.appendChild(div);
+  });
+}
+
+// ============ TEST MODE ============
+let testCorrect = 0, testWrong = 0, testTotal = 0;
+
+function generateTest() {
+  testCorrect = 0; testWrong = 0;
+  document.getElementById('test-correct').textContent = '0';
+  document.getElementById('test-wrong-display').textContent = '';
+  const container = document.getElementById('test-questions');
+  container.innerHTML = '';
+
+  const questions = [];
+
+  const shuffledTerms = [...KEY_TERMS].sort(() => Math.random() - 0.5).slice(0, 6);
+  shuffledTerms.forEach(card => {
+    questions.push({
+      type: 'fill-blank',
+      text: `The term for: "${card.def.substring(0, 130)}..." is <span class="blank">____</span>`,
+      answer: card.term.toLowerCase().replace(/\s*\(motive\)/i,'').trim(),
+      altAnswers: card.term.includes('(Motive)') ? [card.term.toLowerCase()] : [],
+      display: card.term
+    });
+  });
+
+  const dateQs = [
+    { text: "The Spanish-American War was fought in the year <span class='blank'>____</span>.", answer: "1898", display: "1898" },
+    { text: "The USS Maine exploded in Havana Harbor on February 15, <span class='blank'>____</span>.", answer: "1898", display: "1898" },
+    { text: "The Foraker Act gave Puerto Rico a civil government in <span class='blank'>____</span>.", answer: "1900", display: "1900" },
+    { text: "The Jones Act granted Puerto Ricans US citizenship in <span class='blank'>____</span>.", answer: "1917", display: "1917" },
+    { text: "American planters overthrew Queen Lili'uokalani in <span class='blank'>____</span>.", answer: "1893", display: "1893" },
+    { text: "Cuba's Second Revolution began in the year <span class='blank'>____</span>.", answer: "1895", display: "1895" },
+  ];
+  dateQs.sort(() => Math.random() - 0.5).slice(0, 3).forEach(q => questions.push({ type: 'fill-blank', ...q }));
+
+  const peopleQs = [
+    { text: "<span class='blank'>____</span> was the Cuban revolutionary leader who became a martyr for independence in 1895.", answer: "jose julian marti", altAnswers: ["jose marti","marti","josé julián martí","josé martí"], display: "José Julián Martí" },
+    { text: "<span class='blank'>____</span> was the Spanish general who created the reconcentration camps in Cuba.", answer: "valeriano weyler", altAnswers: ["weyler","general weyler","general valeriano weyler"], display: "General Valeriano Weyler" },
+    { text: "<span class='blank'>____</span> was the US president during the Spanish-American War.", answer: "mckinley", altAnswers: ["william mckinley","president mckinley"], display: "President McKinley" },
+    { text: "<span class='blank'>____</span> was the last reigning monarch of Hawaii.", answer: "liliuokalani", altAnswers: ["queen liliuokalani","lili uokalani","queen lili uokalani","lili'uokalani"], display: "Queen Lili'uokalani" },
+    { text: "The <span class='blank'>____</span> were the indigenous people of Puerto Rico.", answer: "tainos", altAnswers: ["taíno","tainos","taínos"], display: "Taínos" },
+  ];
+  peopleQs.sort(() => Math.random() - 0.5).slice(0, 3).forEach(q => questions.push({ type: 'fill-blank', ...q }));
+
+  const shortQs = [
+    { text: "Name TWO of the six motives of imperialism.", keywords: ["economic","military","ideologic","political","religion","explorat"], needed: 2, display: "Economics, Military, Ideological, Political, Religion, Exploration", answer: "" },
+    { text: "Name TWO events that led to the Spanish-American War.", keywords: ["maine","yellow journalism","cuban revolution","marti","weyler","reconcentration","de lome","de lôme"], needed: 2, display: "Cuban Revolution led by Martí, Weyler's reconcentration camps, yellow journalism, de Lôme letter, USS Maine explosion", answer: "" },
+    { text: "What three territories did Spain give up to the US in the Treaty of Paris (1898)?", keywords: ["puerto rico","guam","philippines"], needed: 3, display: "Puerto Rico, Guam, and the Philippines", answer: "" },
+    { text: "How did the US annex Hawaii? Name TWO factors.", keywords: ["sugar","planter","lili","overthrew","overthrow","pearl harbor","marines","1898","1893","queen"], needed: 2, display: "American sugar planters overthrew Queen Lili'uokalani (1893) with US Marines; US annexed Hawaii in 1898 for sugar economy and Pearl Harbor naval base", answer: "" },
+  ];
+  shortQs.sort(() => Math.random() - 0.5).slice(0, 2).forEach(q => questions.push({ type: 'short-answer', ...q }));
+
+  questions.sort(() => Math.random() - 0.5);
+  testTotal = questions.length;
+  document.getElementById('test-total').textContent = testTotal;
+
+  questions.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'test-question';
+    div.dataset.answered = 'false';
+    const typeLabel = q.type === 'fill-blank' ? 'Fill in the Blank' : 'Short Answer';
+    div.innerHTML = `
+      <div class="q-num">Question ${i + 1} <span class="q-type">${typeLabel}</span></div>
+      <div class="q-text">${q.text}</div>
+      <input type="text" placeholder="${q.type === 'short-answer' ? 'Type your answer...' : 'Type the answer...'}" data-answer='${JSON.stringify(q.answer)}' data-alt='${JSON.stringify(q.altAnswers || [])}' data-display="${q.display.replace(/"/g,'&quot;')}" data-type="${q.type}" ${q.keywords ? `data-keywords='${JSON.stringify(q.keywords)}' data-needed="${q.needed}"` : ''}>
+      <div class="feedback"></div>
+      <button class="check-btn" onclick="checkSingle(this)">Check</button>`;
+    container.appendChild(div);
+  });
+}
+
+function normalize(s) { return (s||'').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ''); }
+
+function checkSingle(btn) {
+  const question = btn.closest('.test-question');
+  if (question.dataset.answered === 'true') return;
+  const input = question.querySelector('input');
+  const feedback = question.querySelector('.feedback');
+  const userAnswer = normalize(input.value);
+  const correctAnswer = normalize(JSON.parse(input.dataset.answer));
+  const altAnswers = JSON.parse(input.dataset.alt || '[]').map(normalize);
+  const display = input.dataset.display;
+  const type = input.dataset.type;
+
+  let isCorrect = false;
+  if (type === 'fill-blank') {
+    isCorrect = userAnswer === correctAnswer || altAnswers.some(a => userAnswer === a) ||
+      (correctAnswer && userAnswer.length > 3 && correctAnswer.includes(userAnswer));
+  } else {
+    const keywords = JSON.parse(input.dataset.keywords || '[]');
+    const needed = parseInt(input.dataset.needed || '1');
+    let hits = 0;
+    keywords.forEach(kw => { if (userAnswer.includes(normalize(kw))) hits++; });
+    isCorrect = hits >= needed;
+  }
+
+  question.dataset.answered = 'true';
+  feedback.classList.add('show');
+  btn.disabled = true;
+
+  if (isCorrect) {
+    input.classList.add('correct');
+    question.classList.add('answered-correct');
+    feedback.classList.add('correct-fb');
+    feedback.textContent = 'Correct!';
+    testCorrect++;
+  } else {
+    input.classList.add('wrong');
+    question.classList.add('answered-wrong');
+    feedback.classList.add('wrong-fb');
+    feedback.innerHTML = `Incorrect. Answer: <strong>${display}</strong>`;
+    testWrong++;
+  }
+
+  document.getElementById('test-correct').textContent = testCorrect;
+  document.getElementById('test-wrong-display').textContent = testWrong > 0 ? `(${testWrong} wrong)` : '';
+  updateMastery();
+
+  const allAnswered = [...document.querySelectorAll('.test-question')].every(q => q.dataset.answered === 'true');
+  if (allAnswered) showResults();
+}
+
+function checkAllAnswers() {
+  document.querySelectorAll('.test-question .check-btn').forEach(btn => {
+    if (!btn.disabled) checkSingle(btn);
+  });
+}
+
+function showResults() {
+  const pct = Math.round((testCorrect / testTotal) * 100);
+  document.getElementById('result-score').textContent = pct + '%';
+  let msg = '';
+  if (pct >= 90) msg = "Excellent! You're ready for this quiz!";
+  else if (pct >= 70) msg = "Good job! Review the ones you missed.";
+  else if (pct >= 50) msg = "Getting there. Focus on the terms you missed.";
+  else msg = "Keep studying! Use the flashcards and browse sections.";
+  document.getElementById('result-msg').textContent = msg;
+  document.getElementById('results-overlay').classList.add('show');
+}
+function closeResults() {
+  document.getElementById('results-overlay').classList.remove('show');
+  generateTest();
+}
+
+// ============ MATCHING ============
+let matchState = { selectedTerm: null, selectedDef: null, matched: 0, total: 0, correct: 0 };
+
+function generateMatching() {
+  matchState = { selectedTerm: null, selectedDef: null, matched: 0, total: 6, correct: 0 };
+  const items = [...allCards].sort(() => Math.random() - 0.5).slice(0, 6);
+  const termsDiv = document.getElementById('match-terms');
+  const defsDiv = document.getElementById('match-defs');
+  termsDiv.innerHTML = '';
+  defsDiv.innerHTML = '';
+  document.getElementById('match-score').textContent = '';
+
+  const shuffledDefs = [...items].sort(() => Math.random() - 0.5);
+
+  items.forEach((item) => {
+    const termEl = document.createElement('div');
+    termEl.className = 'match-item';
+    termEl.textContent = item.term;
+    termEl.dataset.key = item.term;
+    termEl.dataset.side = 'term';
+    termEl.onclick = () => selectMatch(termEl);
+    termsDiv.appendChild(termEl);
+  });
+  shuffledDefs.forEach((item) => {
+    const defEl = document.createElement('div');
+    defEl.className = 'match-item';
+    defEl.textContent = item.def.length > 100 ? item.def.substring(0, 100) + '...' : item.def;
+    defEl.dataset.key = item.term;
+    defEl.dataset.side = 'def';
+    defEl.onclick = () => selectMatch(defEl);
+    defsDiv.appendChild(defEl);
+  });
+}
+
+function selectMatch(el) {
+  if (el.classList.contains('matched-correct')) return;
+  const side = el.dataset.side;
+  el.parentElement.querySelectorAll('.match-item').forEach(e => e.classList.remove('selected', 'matched-wrong'));
+  el.classList.add('selected');
+  if (side === 'term') matchState.selectedTerm = el; else matchState.selectedDef = el;
+
+  if (matchState.selectedTerm && matchState.selectedDef) {
+    const termKey = matchState.selectedTerm.dataset.key;
+    const defKey = matchState.selectedDef.dataset.key;
+    if (termKey === defKey) {
+      matchState.selectedTerm.classList.remove('selected');
+      matchState.selectedDef.classList.remove('selected');
+      matchState.selectedTerm.classList.add('matched-correct');
+      matchState.selectedDef.classList.add('matched-correct');
+      matchState.correct++;
+      matchState.matched++;
+    } else {
+      matchState.selectedTerm.classList.add('matched-wrong');
+      matchState.selectedDef.classList.add('matched-wrong');
+      const t = matchState.selectedTerm, d = matchState.selectedDef;
+      setTimeout(() => {
+        t.classList.remove('selected', 'matched-wrong');
+        d.classList.remove('selected', 'matched-wrong');
+      }, 800);
+      matchState.matched++;
+    }
+    document.getElementById('match-score').textContent = `${matchState.correct} / ${matchState.total}`;
+    matchState.selectedTerm = null;
+    matchState.selectedDef = null;
+    if (matchState.correct === matchState.total) {
+      document.getElementById('match-score').textContent = 'All matched! Great job!';
+    }
+  }
+}
+
+// ============ MASTERY ============
+function updateMastery() {
+  const pct = Math.round((testCorrect / Math.max(testTotal, 1)) * 100);
+  const ring = document.getElementById('masteryRing');
+  const circumference = 106.8;
+  ring.style.strokeDashoffset = circumference - (circumference * pct / 100);
+  document.getElementById('masteryPct').textContent = pct + '%';
+}
+
+document.addEventListener('keydown', (e) => {
+  const active = document.querySelector('.section.active');
+  if (!active) return;
+  if (active.id === 'sec-flashcards') {
+    if (e.code === 'Space') { e.preventDefault(); flipTopCard(); }
+    if (e.code === 'ArrowRight' || e.code === 'ArrowDown') { e.preventDefault(); nextCard(); }
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowUp') { e.preventDefault(); prevCard(); }
+  }
+});
+
+// ============ INIT ============
+buildFilters('flashcard-filters', filterFlashcards);
+buildFilters('browse-filters', buildBrowse);
+buildDeck();
+buildBrowse('all');
+buildTimeline();
+buildQA();
+</script>
+</body>
+</html>
